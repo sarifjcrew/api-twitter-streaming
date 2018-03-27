@@ -1,35 +1,36 @@
 package main
 
-import(
-	"net"
-	"time"
+import (
+	"encoding/json"
 	"io"
-	"github.com/garyburd/go-oauth/oauth"
-	"gopkg.in/mgo.v2"
 	"log"
-	"sync"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"encoding/json"
+	"sync"
+	"time"
+
+	"github.com/garyburd/go-oauth/oauth"
+	"gopkg.in/mgo.v2"
 )
 
 var (
-	conn net.Conn
-	reader io.ReadCloser
-	authClient *oauth.Client
-	creds *oauth.Credentials
+	conn          net.Conn
+	reader        io.ReadCloser
+	authClient    *oauth.Client
+	creds         *oauth.Credentials
 	authSetupOnce sync.Once
-	httpClient *http.Client
-	db *mgo.Session
+	httpClient    *http.Client
+	db            *mgo.Session
 )
 
 type tweet struct {
 	Text string
 }
 
-func dial(netw, addr string)(net.Conn, error) {
+func dial(netw, addr string) (net.Conn, error) {
 	if conn != nil {
 		conn.Close()
 		conn = nil
@@ -56,43 +57,42 @@ func closeConn() {
 
 func setupTwitterAuth() {
 	type ts struct {
-		ConsumerKey string
+		ConsumerKey    string
 		ConsumerSecret string
-		AccessToken string
-		AccessSecret string
+		AccessToken    string
+		AccessSecret   string
 	}
-	
+
 	var twitterCred = ts{
-		ConsumerKey : "9dfpB2dyG8upC3eT0swL3XRwj",
-		ConsumerSecret : "pXTzHR5gPnblLha2qgUG4iXxHYrbWyS6Z1a0S4eucunYp4Jhye",
-		AccessToken : "3116441227-X1qAK01xg6hbevi4YENN7MGxCtwBKf0gnw5oaYr",
-		AccessSecret : "ZKqBXeKZyG84a2nHuYYYRnmFf5rleEA7MKio12VfRvRZA",
+		ConsumerKey:    "fill",
+		ConsumerSecret: "fill",
+		AccessToken:    "fill",
+		AccessSecret:   "fill",
 	}
 
 	creds = &oauth.Credentials{
-		Token: twitterCred.AccessToken,
+		Token:  twitterCred.AccessToken,
 		Secret: twitterCred.AccessSecret,
 	}
 
 	authClient = &oauth.Client{
 		Credentials: oauth.Credentials{
-			Token: twitterCred.ConsumerKey,
+			Token:  twitterCred.ConsumerKey,
 			Secret: twitterCred.ConsumerSecret,
 		},
 	}
 }
 
-
 func makeRequest(req *http.Request, params url.Values) (*http.Response, error) {
-	authSetupOnce.Do(func(){
+	authSetupOnce.Do(func() {
 		setupTwitterAuth()
-		httpClient = &http.Client {
+		httpClient = &http.Client{
 			Transport: &http.Transport{
 				Dial: dial,
 			},
 		}
 	})
-	
+
 	formEnc := params.Encode()
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", strconv.Itoa(len(formEnc)))
@@ -147,7 +147,7 @@ func readFromTwitter(votes chan<- string) {
 		log.Fatalln("error decode:", err)
 	}
 
-	for _,option := range options {
+	for _, option := range options {
 		if strings.Contains(strings.ToLower(t.Text), strings.ToLower(option)) {
 			votes <- option
 		}
@@ -161,7 +161,6 @@ func startTwitterStream(stopchan <-chan struct{}, votes chan<- string) <-chan st
 		defer func() {
 			stoppedchan <- struct{}{}
 		}()
-	
 
 		for {
 			select {
